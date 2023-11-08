@@ -231,10 +231,10 @@ flights.sf <- flights.trip %>%
 
 #### MAP ANIMATION ####
 flight_sample <- flights.sf %>%
-  sample_n(size = 500) %>%
+  sample_n(size = 600000) %>%
   filter(!is.na(lat_1) & !is.na(lat_2) & !is.na(lon_1) & !is.na(lon_2)) %>%
   mutate(
-    d_name = as.numeric(substr(date, start = 6, stop = 7)),
+    d_name = as.numeric(substr(date, start = 9, stop = 10)),
     m_name = case_when(
       month == 1 ~ "January",
       month == 2 ~ "February",
@@ -260,25 +260,27 @@ city_list <- c("Dallas, TX",         "Denver, CO",         "Chicago, IL",
                "Salt Lake City, UT", "Las Vegas, NV",      "Washington, DC",    
                "Seattle, WA",        "Los Angeles, CA",    "San Francisco, CA")
 
+
+rm(city1, city2, coords_1, coords_2, flights.trip)
+
 anim_flight <- ggplot() + 
   geom_sf(data = states, fill = "gray15", colour = "gray20") +
-  geom_sf(data = places %>% filter(city %in% city_list), color = "orchid", size = 4) +
   geom_curve(
     data = flight_sample, 
     aes(x = lon_2, y = lat_2, xend = lon_1, yend = lat_1, group = day, alpha = trips), 
-    lineend = "round", color = "cyan", curvature = 0.3, linewidth = 0.2) +
-  scale_alpha(range = c(0.01, 0.35), guide = "none") +
+    lineend = "round", color = "cyan", curvature = 0.3, linewidth = 0.3) +
+  scale_alpha(range = c(0.01, 0.25), guide = "none") +
+  geom_sf(data = places %>% filter(city %in% city_list), color = "orchid", size = 4) +
   theme_void() + 
   theme(panel.background = element_rect(fill = "gray10"),
-        plot.title = element_text( color = "cyan4", face = "bold", size = 30, hjust = 0.06, vjust = -10)) +
+        plot.title = element_text( color = "cyan4", face = "bold", size = 70, hjust = 0.06, vjust = -10)) +
   transition_states(day_label_factor) +  # Use transition_manual to animate based on 'day_label'
   ease_aes('sine-in-out') +
-  #exit_fade(alpha = 0.01) + 
-  labs(title = 'Date: {closest_state}')
+  labs(title = '{closest_state}')
 
-animate(anim_flight, end_pause = 5, height = 800, width = 1000, fps = 4, renderer = gifski_renderer())
+# animate(anim_flight, end_pause = 5, height = 1600, width = 2000, fps = 8, renderer = gifski_renderer())
 
-anim_save("flight_animation.gif", animation = anim_flight)
+anim_save("flight_animation.gif", animation = anim_flight, end_pause = 4, height = 1500, width = 2500, fps = 8, renderer = gifski_renderer())
 
 #### LINE GRAPH ANIMATION ####
 anim_plot <- flight_sample %>%
@@ -297,7 +299,7 @@ anim_plot <- flight_sample %>%
         panel.grid.major = element_blank(), 
         panel.grid.minor = element_blank())
 
-animate(anim_plot, end_pause = 5, height = 400, width = 600, fps = 4, renderer = gifski_renderer())
+animate(anim_plot, end_pause = 3, height = 400, width = 600, fps = 8, renderer = gifski_renderer())
 
 anim_save("flight_animation.gif", animation = anim_plot)
 
