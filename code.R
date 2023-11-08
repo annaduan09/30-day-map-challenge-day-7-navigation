@@ -193,50 +193,6 @@ places <- places(state = NULL, cb = TRUE) %>%
   st_transform(src = states) %>%
   st_transform("ESRI:102003") 
 
-# old_names_1 <- flights.trip %>%
-#   dplyr::mutate(city = city_1) %>% 
-#   ungroup() %>%
-#   left_join(places, by = "city") %>%
-#   filter(is.na(NAME) == TRUE) %>%
-#   dplyr::select(city) %>%
-#   unique()
-# 
-# old_names_2 <- flights.trip %>%
-#   mutate(city = city_2) %>% 
-#   ungroup() %>%
-#   left_join(places, by = "city") %>%
-#   filter(is.na(NAME) == TRUE) %>%
-#   dplyr::select(city) %>%
-#   unique()
-
-# old_names <- rbind(old_names_2, old_names_1) %>%
-#   unique()
-# old_names <- old_names[order(old_names$city),]
-
-#old_names <- list(old_names)
-
-
-# new_names <- c("Adak, AK", "Allentown, PA", "Arcata, CA","Ashland, VA", "Augusta-Richmond County consolidated government (balance), GA",
-#                "Beaumont, TX", "Bend, OR",  "Bismarck, ND", "Bloomington, IL","Boise City, ID",
-#                "Bristol, TN","Butte-Silver Bow (balance), MT", "Cedar Rapids, IA","Champaign, IL",  "Charleston, WV",
-#                "Clarksburg, WV", "College Station, TX","Dallas, TX", "Prudhoe Bay, AK",  "Elmira, NY",
-#                "Greensboro, NC",  "Adacao, GU", "Gulfport, MS","Hancock, MI","Harlingen, TX", 
-#                "Hattiesburg, MS", "Hilton Head Island, SC","Urban Honolulu, HI","Indianapolis city (balance), IN","Iron Mountain, MI",
-#                "Ithaca, NY", "Jackson, MS","Jacksonville, NC",  "Kailua, HI",  "Lawton, OK",
-#                "Lexington-Fayette, KY",  "Manhattan, KS", "Midland, TX", "Mission, TX", "Montrose, CO",
-#                "Nashville-Davidson metropolitan government (balance), TN", "New Bern, NC", "Newburgh, NY", "Newport News, VA", "North Bend, OR",  
-#                "Pago Pago, AS", "Pasco, WA",  "Raleigh, NC", "Riverton, WY", "Saginaw, MI", 
-#                "Kagman, MP",  "Sarasota, FL",  "Scranton, PA",     "Sun Valley, ID", "Palm Beach, FL") 
-
-# 
-# missing_names_1 <- data.frame(old_names, new_names) %>%
-#   rename(new_names_1 = new_names,
-#          city_1 = city)
-# 
-# missing_names_2 <- data.frame(old_names, new_names) %>%
-#   rename(city_2 = city,
-#          new_names_2 = new_names)
-
 coords_1 <- places %>%
   rename(city_1 = city) %>%
   mutate(geometry_1 = geometry) %>%
@@ -254,41 +210,28 @@ coords_2 <- places %>%
 
 #### TRIPS DF #### 
 flights.sf <- flights.trip %>%
-  # left_join(missing_names_1, by = "city_1") %>%
-  # left_join(missing_names_2, by = "city_2") %>%
-  # mutate(city_1 = ifelse(is.na(new_names_1) == FALSE, new_names_1, city_1),
-  #        city_2 = ifelse(is.na(new_names_2) == FALSE, new_names_2, city_2)) %>%
+  mutate(city_1 = str_replace(city_1, "Dallas/Fort Worth, TX", "Dallas, TX"),
+         city_2 = str_replace(city_2, "Dallas/Fort Worth, TX", "Dallas, TX"),
+         
+         city_1 = str_replace(city_1, "Nashville, TN", "Nashville-Davidson metropolitan government (balance), TN"),
+         city_2 = str_replace(city_2, "Nashville, TN", "Nashville-Davidson metropolitan government (balance), TN"),
+         
+         city_1 = str_replace(city_1, "Indianapolis, IN", "Indianapolis city (balance), IN"),
+         city_2 = str_replace(city_2, "Indianapolis, IN", "Indianapolis city (balance), IN"),
+         
+         city_1 = str_replace(city_1, "Raleigh/Durham, NC", "Raleigh, NC"),
+         city_2 = str_replace(city_2, "Raleigh/Durham, NC", "Raleigh, NC"),
+         
+         city_1 = str_replace(city_1, "Honolulu, HI", "Urban Honolulu, HI"),
+         city_2 = str_replace(city_2, "Honolulu, HI", "Urban Honolulu, HI")) %>%
   left_join(coords_1, by = "city_1") %>%
   left_join(coords_2, by = "city_2") %>%
- # dplyr::select(-c(new_names_1, new_names_2)) %>%
   filter(grepl("TT", trip) == FALSE & grepl("VI", trip) == FALSE) %>%
   st_as_sf(sf_column_name = "geometry_1") 
 
-#### MAP ####
-# 
-# flight_sample <- flights.sf %>%
-#  # sample_n(size = 500000) %>%
-#   filter(is.na(lat_1) == FALSE &
-#            is.na(lat_2) == FALSE &
-#            is.na(lon_1) == FALSE &
-#            is.na(lon_2) == FALSE) %>%
-#   mutate(d_name = substr(date, start = 6, stop = 7) %>% as.numeric(),
-#            m_name = ifelse(month == 1, "January",
-#                          ifelse(month == 2, "February",
-#                                 ifelse(month == 3, "March",
-#                                        ifelse(month == 4, "April",
-#                                               ifelse(month == 5, "May",
-#                                                      ifelse(month == 6, "June",
-#                                                             ifelse(month == 7, "July",
-#                                                                    ifelse(month == 8, "August",
-#                                                                           ifelse(month == 9, "September",
-#                                                                                  ifelse(month == 10, "October",
-#                                                                                         ifelse(month == 11, "November", "December"))))))))))),
-#          day_label = paste(m_name, d_name, sep = " "))
-
-
+#### MAP ANIMATION ####
 flight_sample <- flights.sf %>%
- # sample_n(size = 10000) %>%
+  sample_n(size = 500) %>%
   filter(!is.na(lat_1) & !is.na(lat_2) & !is.na(lon_1) & !is.na(lon_2)) %>%
   mutate(
     d_name = as.numeric(substr(date, start = 6, stop = 7)),
@@ -311,36 +254,79 @@ flight_sample <- flights.sf %>%
     day_label_factor = factor(day_label, levels = unique(day_label[order(day)]))
   )
 
+city_list <- c("Dallas, TX",         "Denver, CO",         "Chicago, IL",       
+               "Atlanta, GA",        "Charlotte, NC",      "Houston, TX",       
+               "Phoenix, AZ",        "Detroit, MI",        "Minneapolis, MN",   
+               "Salt Lake City, UT", "Las Vegas, NV",      "Washington, DC",    
+               "Seattle, WA",        "Los Angeles, CA",    "San Francisco, CA")
 
-anim <- ggplot() + 
+anim_flight <- ggplot() + 
   geom_sf(data = states, fill = "gray15", colour = "gray20") +
+  geom_sf(data = places %>% filter(city %in% city_list), color = "orchid", size = 4) +
   geom_curve(
     data = flight_sample, 
     aes(x = lon_2, y = lat_2, xend = lon_1, yend = lat_1, group = day, alpha = trips), 
     lineend = "round", color = "cyan", curvature = 0.3, linewidth = 0.2) +
-  scale_alpha(range = c(0.01, 0.35)) +
+  scale_alpha(range = c(0.01, 0.35), guide = "none") +
   theme_void() + 
   theme(panel.background = element_rect(fill = "gray10"),
         plot.title = element_text( color = "cyan4", face = "bold", size = 30, hjust = 0.06, vjust = -10)) +
-  transition_states(date) +  # Use transition_manual to animate based on 'day_label'
+  transition_states(day_label_factor) +  # Use transition_manual to animate based on 'day_label'
   ease_aes('sine-in-out') +
   #exit_fade(alpha = 0.01) + 
   labs(title = 'Date: {closest_state}')
 
-animate(anim, end_pause = 5, height = 800, width = 1000, fps = 4, renderer = gifski_renderer())
+animate(anim_flight, end_pause = 5, height = 800, width = 1000, fps = 4, renderer = gifski_renderer())
 
-anim_save("flight_animation.gif", animation = anim)
-# 
-# 
-# ggplot() + 
-#   geom_sf(data = states, fill = "gray15", colour = "gray20") +
-#   geom_curve(data = flight_sample, lineend = "round", color = "cyan", curvature = 0.3, linewidth = 0.1,
-#              aes(xend = lon_1, yend = lat_1, x = lon_2, y = lat_2), alpha = 0.2) +
-#   theme_void() + 
-#   theme(panel.background = element_rect(fill = "gray10")) +
-#   transition_manual(frames = day) +
-#   labs(title = 'Day: {current_frame}') +
-#   ease_aes('linear') 
-# 
-# anim <- last_animation()
-# anim_save("flight_animation.gif", animation = anim)
+anim_save("flight_animation.gif", animation = anim_flight)
+
+#### LINE GRAPH ANIMATION ####
+anim_plot <- flight_sample %>%
+  st_drop_geometry() %>%
+  ungroup() %>%
+  group_by(day_label_factor) %>%
+  summarize(trips = sum(trips)) %>%
+  ungroup() %>%
+  ggplot(aes(x = day_label_factor, y = trips)) +
+  geom_point(color = "cyan4", size = 8) +
+  transition_states(day_label_factor) +  # Use transition_manual to animate based on 'day_label'
+  ease_aes('cubic-in-out') +
+  exit_disappear() +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "gray10"),
+        panel.grid.major = element_blank(), 
+        panel.grid.minor = element_blank())
+
+animate(anim_plot, end_pause = 5, height = 400, width = 600, fps = 4, renderer = gifski_renderer())
+
+anim_save("flight_animation.gif", animation = anim_plot)
+
+# check for most frequented cities
+city1 <- flights.sf %>%
+  st_drop_geometry() %>%
+  dplyr::select(city_1) %>%
+  rename(city = city_1)
+
+city2 <- flights.sf %>%
+  st_drop_geometry() %>%
+  dplyr::select(city_2) %>%
+  rename(city = city_2)
+
+cities <- rbind(city1, city2) %>%
+  mutate(trips = 1) %>%
+  group_by(city) %>%
+  summarize(trips = sum(trips)) %>%
+  arrange(desc(trips)) %>%
+  head(15) %>%
+  left_join(places, by = "city") %>%
+  st_as_sf()
+
+
+# to know which cities to label and where they are
+ggplot() +
+  geom_sf(data = states, color = "gray", fill = "gray80") +
+  geom_sf(data = cities, color = "orchid") +
+  geom_sf_text(data = cities, aes(label = substr(city, start = 1, stop = 10), size = 2), nudge_y = 10) +
+  scale_size(guide = "none") +
+  theme_void()
+  
